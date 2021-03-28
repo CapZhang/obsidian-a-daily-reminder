@@ -8,7 +8,7 @@ interface MyPluginSettings {
 }
 
 const DEFAULT_SETTINGS: MyPluginSettings = {
-	filaPath: 'default',
+	filaPath: '知识殿堂/名言警句.md',
 	randomNum: 0,
 	updateTime: 600000,
 	IntervalID: null,
@@ -18,19 +18,22 @@ export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 	aWordBar: HTMLElement;
 	async onload() {
-		console.log('loading plugin');
-		this.aWordBar = this.addStatusBarItem();
-		await this.loadSettings();
-		const fileFullWord = await this.readFileDataList(this.settings.filaPath)
-		this.setAWord(fileFullWord)
-		this.addRibbonIcon('dice', '切换句子', () => {
-			this.setAWord(fileFullWord)
-			this.saveSettings();
-		});
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-		this.registerInterval(window.setInterval(() => {
-			this.setAWord(fileFullWord)
-		}, this.settings.updateTime));
+		let u = this
+		setTimeout(async function () {
+			console.log("loading plugin");
+			u.aWordBar = u.addStatusBarItem();
+			await u.loadSettings();
+			const fileFullWord = await u.readFileDataList(u.settings.filaPath)
+			u.setAWord(fileFullWord)
+			u.addRibbonIcon('dice', '切换句子', () => {
+				u.saveSettings();
+				u.setAWord(fileFullWord)
+			});
+			u.addSettingTab(new SampleSettingTab(u.app, u));
+			u.registerInterval(window.setInterval(() => {
+				u.setAWord(fileFullWord)
+			}, u.settings.updateTime));
+		}, 1000);
 	}
 
 
@@ -67,9 +70,10 @@ export default class MyPlugin extends Plugin {
 
 	setAWord(data: any) {
 		let lines = data.match(/[#]( .*)/g)
+		let aword
 		if (!lines) {
 			console.log("没有匹配到内容");
-
+			aword = "没有匹配到内容"
 		} else {
 			let max = lines.length;
 			let min = 0;
@@ -90,12 +94,12 @@ export default class MyPlugin extends Plugin {
 			} else {
 				this.settings.randomNum = randomNum
 			}
-			let aword = lines[randomNum].split("# ")[1]
-			this.aWordBar.setText("[ " + `${aword}` + " ]");
-			this.aWordBar.setAttribute("class", "status-bar-item a-daily-reminder-bar-item")
-			console.log(aword);
-			console.log("updatetime", this.settings.updateTime);
+			aword = lines[randomNum].split("# ")[1]
 		}
+		this.aWordBar.setText("[ " + `${aword}` + " ]");
+		this.aWordBar.setAttribute("class", "status-bar-item a-daily-reminder-bar-item")
+		console.log(aword);
+		console.log("updatetime", this.settings.updateTime);
 	}
 }
 
