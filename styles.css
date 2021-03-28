@@ -1,4 +1,15 @@
 /* Sets all the text color to red! */
-body {
-    color: red;
+.theme-dark {
+  --a-daily-reminder-bar-item-color: #dcddde;
+}
+
+.theme-light {
+  --a-daily-reminder-bar-item-color: #2e3338;
+}
+
+.a-daily-reminder-bar-item {
+  color: var(--a-daily-reminder-bar-item-color);
+  position: absolute;
+  left: 20px;
+  font-weight: bold;
 }

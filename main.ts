@@ -1,59 +1,41 @@
-import { App, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
 
 interface MyPluginSettings {
-	mySetting: string;
+	filaPath: string;
+	updateTime: any;
+	randomNum: any;
+	IntervalID: any
 }
 
 const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+	filaPath: 'default',
+	randomNum: 0,
+	updateTime: 600000,
+	IntervalID: null,
 }
 
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
-
+	aWordBar: HTMLElement;
 	async onload() {
 		console.log('loading plugin');
-
+		this.aWordBar = this.addStatusBarItem();
 		await this.loadSettings();
-
-		this.addRibbonIcon('dice', 'Sample Plugin', () => {
-			new Notice('This is a notice!');
+		const fileFullWord = await this.readFileDataList(this.settings.filaPath)
+		this.setAWord(fileFullWord)
+		this.addRibbonIcon('dice', '切换句子', () => {
+			this.setAWord(fileFullWord)
+			this.saveSettings();
 		});
-
-		this.addStatusBarItem().setText('Status Bar Text');
-
-		this.addCommand({
-			id: 'open-sample-modal',
-			name: 'Open Sample Modal',
-			// callback: () => {
-			// 	console.log('Simple Callback');
-			// },
-			checkCallback: (checking: boolean) => {
-				let leaf = this.app.workspace.activeLeaf;
-				if (leaf) {
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-					return true;
-				}
-				return false;
-			}
-		});
-
 		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		this.registerCodeMirror((cm: CodeMirror.Editor) => {
-			console.log('codemirror', cm);
-		});
-
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+		this.registerInterval(window.setInterval(() => {
+			this.setAWord(fileFullWord)
+		}, this.settings.updateTime));
 	}
 
+
 	onunload() {
+		// this.saveSettings();
 		console.log('unloading plugin');
 	}
 
@@ -64,21 +46,56 @@ export default class MyPlugin extends Plugin {
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
-}
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
+	async readFileData(path: string) {
+		let file = this.app.vault.getAbstractFileByPath(path);
+
+		if (file instanceof TFile) {
+			const filedata = await this.app.vault.read(file)
+			return filedata
+		}
 	}
 
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
+	async readFileDataList(path: string) {
+		let pathList = path.split(";")
+		let fileFullWord = ""
+		for (let i = 0; i < pathList.length; i++) {
+			fileFullWord += await this.readFileData(pathList[i]) + "\n"
+		}
+		return fileFullWord
 	}
 
-	onClose() {
-		let {contentEl} = this;
-		contentEl.empty();
+	setAWord(data: any) {
+		let lines = data.match(/[#]( .*)/g)
+		if (!lines) {
+			console.log("没有匹配到内容");
+
+		} else {
+			let max = lines.length;
+			let min = 0;
+			let randomNum = Math.floor(Math.random() * (max - min)) + min
+			console.log("settrandomNum", this.settings.randomNum);
+			console.log("randomNum", randomNum);
+			if (randomNum == this.settings.randomNum) {
+				if (randomNum < max - 1) {
+					randomNum += 1
+					console.log("inrm", randomNum);
+
+					this.settings.randomNum = randomNum
+				} else {
+					randomNum -= 1
+					console.log("inrm", randomNum);
+					this.settings.randomNum = randomNum
+				}
+			} else {
+				this.settings.randomNum = randomNum
+			}
+			let aword = lines[randomNum].split("# ")[1]
+			this.aWordBar.setText("[ " + `${aword}` + " ]");
+			this.aWordBar.setAttribute("class", "status-bar-item a-daily-reminder-bar-item")
+			console.log(aword);
+			console.log("updatetime", this.settings.updateTime);
+		}
 	}
 }
 
@@ -91,22 +108,39 @@ class SampleSettingTab extends PluginSettingTab {
 	}
 
 	display(): void {
-		let {containerEl} = this;
+		let { containerEl } = this;
 
 		containerEl.empty();
 
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
+		containerEl.createEl('h2', { text: '每日警句' });
 
+		let currFilepath: string;
+		if (this.plugin.settings.filaPath) {
+			currFilepath = this.plugin.settings.filaPath
+		} else {
+			currFilepath = ""
+		}
 		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue('')
+			.setName('分号分隔的多个文件')
+			.setDesc('root/filename.md;root/filename2.md')
+			.addTextArea(text => text
+				.setPlaceholder('请输入文件路径')
+				.setValue(currFilepath)
 				.onChange(async (value) => {
 					console.log('Secret: ' + value);
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
+					this.plugin.settings.filaPath = value;
+					this.plugin.saveSettings();
+				}));
+		new Setting(containerEl)
+			.setName('句子更新时间')
+			.setDesc('单位：毫秒')
+			.addTextArea(text => text
+				.setPlaceholder('请输入更新间隔')
+				.setValue(this.plugin.settings.updateTime)
+				.onChange(async (value) => {
+					console.log('Secret: ' + value);
+					this.plugin.settings.updateTime = value;
+					this.plugin.saveSettings();
 				}));
 	}
 }
