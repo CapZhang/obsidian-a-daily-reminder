@@ -4,14 +4,14 @@ interface MyPluginSettings {
 	filaPath: string;
 	updateTime: any;
 	randomNum: any;
-	IntervalID: any
+	nextTime: any
 }
 
 const DEFAULT_SETTINGS: MyPluginSettings = {
 	filaPath: '知识殿堂/名言警句.md',
 	randomNum: 0,
 	updateTime: 600000,
-	IntervalID: null,
+	nextTime: null,
 }
 
 export default class MyPlugin extends Plugin {
@@ -31,8 +31,10 @@ export default class MyPlugin extends Plugin {
 			});
 			u.addSettingTab(new SampleSettingTab(u.app, u));
 			u.registerInterval(window.setInterval(() => {
-				u.setAWord(fileFullWord)
-			}, u.settings.updateTime));
+				if (new Date().getTime() >= u.settings.nextTime) {
+					u.setAWord(fileFullWord)
+				}
+			}, 1000));
 		}, 1000);
 	}
 
@@ -70,7 +72,9 @@ export default class MyPlugin extends Plugin {
 
 	setAWord(data: any) {
 		let lines = data.match(/[#]( .*)/g)
+		// console.log("[Daily aphorism] File Data:", data);
 		let aword
+		let aHoverData
 		if (!lines) {
 			console.log("没有匹配到内容");
 			aword = "没有匹配到内容"
@@ -78,8 +82,8 @@ export default class MyPlugin extends Plugin {
 			let max = lines.length;
 			let min = 0;
 			let randomNum = Math.floor(Math.random() * (max - min)) + min
-			console.log("settrandomNum", this.settings.randomNum);
-			console.log("randomNum", randomNum);
+			console.log("[Daily aphorism] Last Random Number:", this.settings.randomNum);
+			console.log("[Daily aphorism] Current Rndom Number:", randomNum);
 			if (randomNum == this.settings.randomNum) {
 				if (randomNum < max - 1) {
 					randomNum += 1
@@ -95,11 +99,14 @@ export default class MyPlugin extends Plugin {
 				this.settings.randomNum = randomNum
 			}
 			aword = lines[randomNum].split("# ")[1]
+			aHoverData = data.split("# ")[randomNum]
 		}
 		this.aWordBar.setText("[ " + `${aword}` + " ]");
 		this.aWordBar.setAttribute("class", "status-bar-item a-daily-reminder-bar-item")
-		console.log(aword);
-		console.log("updatetime", this.settings.updateTime);
+		this.settings.nextTime = new Date().getTime() + Number(this.settings.updateTime)
+		console.log("[Daily aphorism] Sentence:", aword);
+		console.log("[Daily aphorism] Update Frequency:", this.settings.updateTime);
+		console.log("[Daily aphorism] Next Update Time:", this.settings.nextTime);
 	}
 }
 

@@ -12,5 +12,6 @@
   position: absolute;
   left: 20px;
   font-weight: bold;
-  bottom: 6px;
+  /* bottom: 6px; */
+  line-height: 22px;
 }
