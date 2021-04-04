@@ -1,7 +1,7 @@
 {
 	"id": "obsidian-Daily-aphorism",
 	"name": "Daily aphorism",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"minAppVersion": "0.11.9",
 	"description": "Displays a sentence read from the configuration file at the bottom at regular intervals",
 	"author": "CaptainZXX",
